@@ -11,12 +11,14 @@
   },
   "dependencies": {
     "@fontsource/vazirmatn": "^5.2.6",
+    "katex": "^0.19.1",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "@types/katex": "^0.16.8",
     "@types/react": "^19.0.3",
     "@types/react-dom": "^19.0.2",
     "@vitejs/plugin-react": "^4.3.4",
