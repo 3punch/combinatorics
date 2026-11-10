@@ -2,9 +2,11 @@ import { useMemo, useState } from 'react'
 import {
   ArrowLeft, Atom, BookMarked, BookOpen, CheckCircle2, ChevronLeft,
   ChevronRight, Download, ExternalLink, FileText, FlaskConical, GitBranch, GraduationCap,
-  Grid3X3, Layers3, Network, Search, Sigma, X,
+  Grid3X3, Layers3, Network, Search, Sigma, Sparkles, X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import Lesson from './Lesson'
+import DigitalSection from './DigitalSection'
 
 const PDF = '/notes/mabani-combinatorics.pdf'
 const fa = (n: number) => n.toLocaleString('fa-IR')
@@ -50,6 +52,7 @@ function Library({ onExperiment }: { onExperiment: () => void }) {
   const [activeChapter, setActiveChapter] = useState(1)
   const [query, setQuery] = useState('')
   const [reader, setReader] = useState<{ title: string; page: number } | null>(null)
+  const [digitalLesson, setDigitalLesson] = useState<string | null>(null)
   const [completed, setCompleted] = useState<number[]>(() => {
     try { return JSON.parse(localStorage.getItem('tarkib-read-sections') || '[]') } catch { return [] }
   })
@@ -59,7 +62,30 @@ function Library({ onExperiment }: { onExperiment: () => void }) {
     if (!query.trim()) return []
     return chapters.flatMap(c => c.sections.map(s => ({ ...s, chapter: c }))).filter(s => `${s.title} ${s.chapter.title}`.includes(query.trim()))
   }, [query])
-  const openSection = (title: string, page: number) => setReader({ title, page: page + 5 })
+  const allSections = chapters.flatMap(c => c.sections.map((s, i) => ({ ...s, chapter: c, key: `${c.id}.${i + 1}` })))
+  const openSection = (title: string, page: number) => {
+    const section = allSections.find(s => s.title === title && s.page === page)
+    if (section) {
+      setReader(null)
+      setDigitalLesson(section.key)
+      setActiveChapter(section.chapter.id)
+    } else {
+      setDigitalLesson(null)
+      setReader({ title, page: page + 5 })
+    }
+  }
+  const digitalIndex = allSections.findIndex(s => s.key === digitalLesson)
+  const digitalSection = digitalIndex >= 0 ? allSections[digitalIndex] : null
+  const toggleDigitalRead = (page: number) => {
+    const next = completed.includes(page) ? completed.filter(p => p !== page) : [...completed, page]
+    setCompleted(next)
+    localStorage.setItem('tarkib-read-sections', JSON.stringify(next))
+  }
+  const openDigitalPdf = (page: number) => {
+    if (!digitalSection) return
+    setDigitalLesson(null)
+    setReader({ title: digitalSection.title, page: page + 5 })
+  }
   const markRead = () => {
     if (!reader) return
     const key = reader.page - 5
@@ -78,7 +104,7 @@ function Library({ onExperiment }: { onExperiment: () => void }) {
     <section className="source-card">
       <img src="/notes/cover.png" alt="جلد کتاب مبانی ترکیبیات" />
       <div className="source-info"><span className="source-label"><BookMarked size={14} /> منبع اصلی کتابخانه</span><h2>مبانی ترکیبیات</h2><p>دکتر امیر مافی · دانشیار گروه ریاضی دانشگاه کردستان</p><div className="source-meta"><span><FileText size={14} /> {fa(246)} صفحه</span><span><Layers3 size={14} /> {fa(7)} فصل</span><span><BookOpen size={14} /> {fa(sectionCount)} بخش آموزشی</span></div></div>
-      <div className="source-actions"><button className="light-btn" onClick={() => openSection('آغاز کتاب', 1)}><BookOpen size={16} /> مطالعهٔ جزوه</button><a href={PDF} download="مبانی-ترکیبیات.pdf"><Download size={16} /> دانلود PDF</a></div>
+      <div className="source-actions"><button className="light-btn" onClick={() => openSection('اصول اساسی شمارش', 1)}><Sparkles size={16} /> درس‌نامهٔ وب</button><button className="pdf-source-btn" onClick={() => openSection('آغاز کتاب', 1)}><BookOpen size={16} /> مطالعهٔ PDF</button><a href={PDF} download="مبانی-ترکیبیات.pdf"><Download size={16} /> دانلود PDF</a></div>
     </section>
     <div className="reading-progress"><div><GraduationCap size={18} /><span>پیشرفت مطالعهٔ شما</span><strong>{fa(completed.length)} بخش از {fa(sectionCount)}</strong></div><div className="reading-track"><i style={{ width: `${Math.min(100, completed.length / sectionCount * 100)}%` }} /></div><span>{fa(Math.round(completed.length / sectionCount * 100))}٪</span></div>
     <div className="library-layout">
@@ -86,12 +112,31 @@ function Library({ onExperiment }: { onExperiment: () => void }) {
         <div className="library-search"><Search size={17} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="جست‌وجو در سرفصل‌ها..." />{query && <button onClick={() => setQuery('')}><X size={15} /></button>}</div>
         {query ? <div className="search-results"><div className="chapter-list-label">{fa(searchResults.length)} نتیجه برای «{query}»</div>{searchResults.map(s => <button key={`${s.chapter.id}-${s.page}`} onClick={() => openSection(s.title, s.page)}><span>{s.title}<small>فصل {fa(s.chapter.id)} · صفحهٔ {fa(s.page)}</small></span><ChevronLeft size={16} /></button>)}{!searchResults.length && <div className="no-results">سرفصلی با این عنوان پیدا نشد.</div>}</div> : <>
           <div className="chapter-list-label">فصل‌های کتاب</div>
-          <div className="chapter-list">{chapters.map(c => <button key={c.id} className={activeChapter === c.id && !reader ? 'active' : ''} onClick={() => { setActiveChapter(c.id); setReader(null) }}><span className="chapter-number">{fa(c.id)}</span><span className="chapter-button-text"><strong>{c.title}</strong><small>صفحهٔ {fa(c.start)} تا {fa(c.end)}</small></span><ChevronLeft size={16} /></button>)}</div>
+          <div className="chapter-list">{chapters.map(c => <button key={c.id} className={activeChapter === c.id && !reader ? 'active' : ''} onClick={() => { setActiveChapter(c.id); setReader(null); setDigitalLesson(null) }}><span className="chapter-number">{fa(c.id)}</span><span className="chapter-button-text"><strong>{c.title}</strong><small>صفحهٔ {fa(c.start)} تا {fa(c.end)}</small></span><ChevronLeft size={16} /></button>)}</div>
           <div className="book-extras"><button onClick={() => openSection('کتاب‌نامه', 229)}>کتاب‌نامه<span>{fa(229)}</span></button><button onClick={() => openSection('فهرست نمادها', 231)}>فهرست نمادها<span>{fa(231)}</span></button><button onClick={() => openSection('واژه‌نامه', 235)}>واژه‌نامه<span>{fa(235)}</span></button></div>
         </>}
       </aside>
       <section className="reading-panel">
-        {reader ? <div className="pdf-reader">
+        {digitalLesson === '1.1' ? <Lesson
+          onBack={() => setDigitalLesson(null)}
+          onPdf={() => { setDigitalLesson(null); setReader({ title: 'اصول اساسی شمارش', page: 6 }) }}
+          onNext={() => setDigitalLesson('1.2')}
+          isRead={completed.includes(1)}
+          onToggleRead={() => {
+            const next = completed.includes(1) ? completed.filter(p => p !== 1) : [...completed, 1]
+            setCompleted(next)
+            localStorage.setItem('tarkib-read-sections', JSON.stringify(next))
+          }}
+        /> : digitalLesson && digitalSection ? <DigitalSection
+          lessonKey={digitalLesson}
+          onBack={() => setDigitalLesson(null)}
+          onPdf={openDigitalPdf}
+          onNavigate={setDigitalLesson}
+          previousKey={allSections[digitalIndex - 1]?.key}
+          nextKey={allSections[digitalIndex + 1]?.key}
+          isRead={completed.includes(digitalSection.page)}
+          onToggleRead={() => toggleDigitalRead(digitalSection.page)}
+        /> : reader ? <div className="pdf-reader">
           <div className="reader-head"><button className="reader-back" onClick={() => setReader(null)}><ChevronRight size={17} /> سرفصل‌ها</button><div><strong>{reader.title}</strong><span>صفحهٔ {fa(reader.page - 5)} از کتاب · صفحهٔ {fa(reader.page)} از PDF</span></div><a href={`${PDF}#page=${reader.page}`} target="_blank" rel="noreferrer" title="بازکردن در برگهٔ جدید"><ExternalLink size={17} /></a></div>
           <iframe key={`${reader.page}-${reader.title}`} src={`${PDF}#page=${reader.page}&zoom=page-width&toolbar=0&navpanes=0`} title={`جزوه مبانی ترکیبیات — ${reader.title}`} />
           <div className="reader-footer"><div><button disabled={currentSection <= 0} onClick={() => moveSection(-1)}><ChevronRight size={16} /> بخش قبل</button><button disabled={currentSection < 0 || currentSection >= sectionCount - 1} onClick={() => moveSection(1)}>بخش بعد <ChevronLeft size={16} /></button></div><button className={`mark-read ${reader && completed.includes(reader.page - 5) ? 'read' : ''}`} onClick={markRead}><CheckCircle2 size={16} />{reader && completed.includes(reader.page - 5) ? 'خوانده شده' : 'علامت به‌عنوان خوانده‌شده'}</button></div>
@@ -99,7 +144,7 @@ function Library({ onExperiment }: { onExperiment: () => void }) {
           <div className="chapter-hero"><div className="big-chapter-icon"><chapter.icon size={30} /></div><div><span>فصل {fa(chapter.id)} · صفحهٔ {fa(chapter.start)}</span><h2>{chapter.title}</h2><p>{chapter.description}</p></div></div>
           <div className="chapter-tags">{chapter.tags.map(t => <span key={t}>{t}</span>)}</div>
           <div className="section-list-head"><h3>سرفصل‌های این فصل</h3><span>{fa(chapter.sections.length)} بخش</span></div>
-          <div className="section-list">{chapter.sections.map((s, i) => <button key={s.page} onClick={() => openSection(s.title, s.page)}><span className={`section-check ${completed.includes(s.page) ? 'done' : ''}`}>{completed.includes(s.page) ? <CheckCircle2 size={16} /> : fa(i + 1)}</span><span><strong>{chapter.id}.{i + 1} · {s.title}</strong><small>صفحهٔ {fa(s.page)}</small></span><BookOpen size={17} /></button>)}</div>
+          <div className="section-list">{chapter.sections.map((s, i) => <button key={s.page} onClick={() => openSection(s.title, s.page)}><span className={`section-check ${completed.includes(s.page) ? 'done' : ''}`}>{completed.includes(s.page) ? <CheckCircle2 size={16} /> : fa(i + 1)}</span><span><strong>{chapter.id}.{i + 1} · {s.title}</strong><small>صفحهٔ {fa(s.page)}{<em className="digital-tag">درس‌نامهٔ وب</em>}</small></span><BookOpen size={17} /></button>)}</div>
           {chapter.id >= 3 && chapter.id <= 6 && <button className="experiment-link" onClick={onExperiment}><div><FlaskConical size={21} /><span><strong>وقت آزمایش کردن است!</strong><small>مفاهیم این فصل را روی گراف خودتان بررسی کنید.</small></span></div><ArrowLeft size={19} /></button>}
         </div>}
       </section>
