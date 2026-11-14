@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import {
   Atom, BarChart3, Bell, BookOpen, BrainCircuit, Check, CheckCircle2, ChevronDown,
-  ChevronLeft, Circle, CircleDot, ClipboardCheck, Command, GitBranch, GraduationCap,
+  ChevronLeft, Circle, CircleDot, ClipboardCheck, Command, FlaskConical, GitBranch, GraduationCap,
   Hand, HelpCircle, LibraryBig, Lightbulb, Link2, Menu, MousePointer2, Network, PanelRightClose,
   Play, Plus, Redo2, RotateCcw, Save, Search, Share2, Sparkles, Trash2,
   TrendingUp, Trophy, Undo2, X, ZoomIn, ZoomOut,
@@ -11,11 +11,13 @@ import type { LucideIcon } from 'lucide-react'
 import { chromaticColoring, completeGraph, conjectures, graphAnalysis, initialGraph, triangleGraph } from './graph'
 import type { Graph } from './graph'
 import Library from './Library'
+import AutomataLab from './AutomataLab'
+import PumpingLemma from './PumpingLemma'
 
 const fa = (n: number) => n.toLocaleString('fa-IR')
 type Tool = 'select' | 'vertex' | 'edge' | 'delete'
 type Modal = 'ramsey' | 'notes' | 'help' | 'lessons' | null
-type View = 'lab' | 'library'
+type View = 'lab' | 'library' | 'automata' | 'pumping'
 
 function Logo() {
   return <div className="brand"><div className="brand-mark"><Network size={26} strokeWidth={2.2} /></div><div><strong>تَرکیب</strong><span>آزمایشگاه ترکیبیات</span></div></div>
@@ -32,7 +34,8 @@ function Sidebar({ onModal, open, setOpen, view, onView }: { onModal: (m: Modal)
       <div className="nav-label">فضای کاری</div>
       <nav>
         {nav('آزمایشگاه گراف', Network, () => { onView('lab'); window.scrollTo({ top: 0, behavior: 'smooth' }); setOpen(false) }, view === 'lab')}
-        {nav('جزوهٔ دانشگاه', LibraryBig, () => { onView('library'); window.scrollTo({ top: 0, behavior: 'smooth' }); setOpen(false) }, view === 'library', 'PDF')}
+        {nav('جزوهٔ دانشگاه', LibraryBig, () => { onView('library'); window.scrollTo({ top: 0, behavior: 'smooth' }); setOpen(false) }, view === 'library', 'PDF')}\n        {nav('آزمایشگاه اتوماتا', Atom, () => { onView('automata'); window.scrollTo({ top: 0, behavior: 'smooth' }); setOpen(false) }, view === 'automata')}
+        {nav('لم پمپاژ', FlaskConical, () => { onView('pumping'); window.scrollTo({ top: 0, behavior: 'smooth' }); setOpen(false) }, view === 'pumping')}
         {nav('مسیر یادگیری', GraduationCap, () => onModal('lessons'), false, '۳')}
         {nav('چالش‌های ترکیبیات', Trophy, () => onModal('ramsey'))}
         {nav('یادداشت‌های من', BookOpen, () => onModal('notes'))}
@@ -59,7 +62,7 @@ function Topbar({ onMenu, onModal, onToast, view }: { onMenu: () => void; onModa
   const [searchOpen, setSearchOpen] = useState(false)
   return <header className="topbar">
     <button className="mobile-menu icon-btn" onClick={onMenu}><Menu size={21} /></button>
-    <div className="breadcrumb"><span>فضای کاری</span><ChevronLeft size={14} /><strong>{view === 'lab' ? 'آزمایشگاه گراف' : 'کتابخانهٔ ترکیبیات'}</strong></div>
+    <div className="breadcrumb"><span>فضای کاری</span><ChevronLeft size={14} /><strong>{view === 'lab' ? 'آزمایشگاه گراف' : view === 'automata' ? 'آزمایشگاه اتوماتا' : view === 'pumping' ? 'لم پمپاژ' : 'کتابخانهٔ ترکیبیات'}</strong></div>
     <div className="top-actions">
       <button className="search-box" onClick={() => setSearchOpen(!searchOpen)}><Search size={17} /><span>جست‌وجو در ترکیب...</span><kbd><Command size={12} /> K</kbd></button>
       <button className="icon-btn help-top" onClick={() => onModal('help')}><HelpCircle size={19} /></button>
@@ -279,7 +282,10 @@ function App() {
     <Sidebar onModal={setModal} open={sidebarOpen} setOpen={setSidebarOpen} view={view} onView={setView} />
     <main className="main-shell"><Topbar onMenu={() => setSidebarOpen(true)} onModal={setModal} onToast={notify} view={view} />
       <div className="content">
-        {view === 'library' ? <Library onExperiment={() => setView('lab')} /> : <>
+        {view === 'library' && <Library onExperiment={() => setView('lab')} />}
+        {view === 'automata' && <AutomataLab onBack={() => setView('lab')} />}
+        {view === 'pumping' && <PumpingLemma onBack={() => setView('lab')} />}
+        {view === 'lab' && <>
         <div className="page-heading"><div><div className="eyebrow"><span /> فضای کشف و آزمایش</div><h1>آزمایشگاه گراف</h1><p>بساز، تغییر بده و الگوهای پنهان را کشف کن.</p></div><div className="page-actions"><button className="secondary-btn" onClick={() => { pushHistory(graph); setGraph({ vertices: [], edges: [] }); notify('یک بوم تازه ساخته شد') }}><Plus size={17} /> گراف جدید</button><button className="primary-btn" onClick={() => { localStorage.setItem('tarkib-graph', JSON.stringify(graph)); notify('گراف در مرورگر شما ذخیره شد') }}><Save size={17} /> ذخیره گراف</button></div></div>
         <div className="stats-grid"><StatCard icon={CircleDot} label="تعداد رأس‌ها" value={a.n} note="n" tone="green" /><StatCard icon={Link2} label="تعداد یال‌ها" value={a.m} note="m" tone="purple" /><StatCard icon={Network} label="مؤلفه‌های همبندی" value={a.components} note={a.connected ? 'گراف همبند است' : 'گراف ناهمبند است'} tone="orange" /><StatCard icon={BarChart3} label="عدد رنگی" value={a.chromatic} note="χ(G)" tone="blue" /></div>
         <div className="workspace"><GraphCanvas graph={graph} setGraph={setGraph} tool={tool} setTool={setTool} onToast={notify} pushHistory={pushHistory} undo={undo} redo={redo} canUndo={past.length > 0} canRedo={future.length > 0} /><AnalysisPanel graph={graph} /></div>
