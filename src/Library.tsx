@@ -7,11 +7,12 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import Lesson from './Lesson'
 import DigitalSection from './DigitalSection'
+import { automataLessons } from './content/automata'
 
 const PDF = '/notes/mabani-combinatorics.pdf'
 const fa = (n: number) => n.toLocaleString('fa-IR')
 
-type Section = { title: string; page: number }
+type Section = { title: string; page: number; digitalOnly?: boolean; key?: string }
 type Chapter = {
   id: number; title: string; start: number; end: number; description: string;
   icon: LucideIcon; tags: string[]; sections: Section[]
@@ -46,6 +47,10 @@ const chapters: Chapter[] = [
     { title: 'مربع‌های لاتین', page: 191 }, { title: 'سیستم‌های متمایزهای از نماینده', page: 203 }, { title: 'هندسهٔ متناهی', page: 211 },
     { title: 'صفحه‌های آفینی', page: 215 }, { title: 'حل چند مسئلهٔ نمونه', page: 224 }, { title: 'تمرینات', page: 226 },
   ] },
+  { id: 8, title: 'اتوماتای متناهی', start: 35, end: 94, icon: FlaskConical, description: 'DFA، NFA، عبارت‌های منظم و زبان‌های منظم.', tags: ['اتوماتا', 'DFA', 'NFA', 'عبارت منظم'], sections: Object.values(automataLessons).filter(l => l.chapterId === 1).map((l, i) => ({ title: l.title, page: l.startPage, digitalOnly: true, key: `at.1.${i + 1}` })) },
+  { id: 9, title: 'زبان‌های مستقل از متن', start: 95, end: 154, icon: FlaskConical, description: 'دستورهای مستقل از متن، اتوماتای پشته‌ای و لم پمپاژ.', tags: ['CFG', 'PDA', 'لم پمپاژ'], sections: Object.values(automataLessons).filter(l => l.chapterId === 2).map((l, i) => ({ title: l.title, page: l.startPage, digitalOnly: true, key: `at.2.${i + 1}` })) },
+  { id: 10, title: 'ماشین تورینگ و تصمیم‌پذیری', start: 155, end: 249, icon: FlaskConical, description: 'ماشین تورینگ، مسألة توقف، قضیهٔ رایس و تصمیم‌پذیری.', tags: ['تورینگ', 'تصمیم‌پذیری', 'رایس'], sections: Object.values(automataLessons).filter(l => l.chapterId >= 3 && l.chapterId <= 5).map((l, i) => ({ title: l.title, page: l.startPage, digitalOnly: true, key: `at.${l.chapterId}.${i + 1}` })) },
+  { id: 11, title: 'پیچیدگی (P و NP)', start: 250, end: 280, icon: Atom, description: 'کلاس‌های P و NP، کاهش چندجمله‌ای و مسائل NP-کامل.', tags: ['پیچیدگی', 'P', 'NP'], sections: Object.values(automataLessons).filter(l => l.chapterId === 7).map((l, i) => ({ title: l.title, page: l.startPage, digitalOnly: true, key: `at.7.${i + 1}` })) },
 ]
 
 function Library({ onExperiment }: { onExperiment: () => void }) {
@@ -62,7 +67,9 @@ function Library({ onExperiment }: { onExperiment: () => void }) {
     if (!query.trim()) return []
     return chapters.flatMap(c => c.sections.map(s => ({ ...s, chapter: c }))).filter(s => `${s.title} ${s.chapter.title}`.includes(query.trim()))
   }, [query])
-  const allSections = chapters.flatMap(c => c.sections.map((s, i) => ({ ...s, chapter: c, key: `${c.id}.${i + 1}` })))
+  const allSections = chapters.flatMap(c =>
+    c.sections.map((s, i) => ({ ...s, chapter: c, key: s.key || `${c.id}.${i + 1}` }))
+  )
   const openSection = (title: string, page: number) => {
     const section = allSections.find(s => s.title === title && s.page === page)
     if (section) {
@@ -144,7 +151,7 @@ function Library({ onExperiment }: { onExperiment: () => void }) {
           <div className="chapter-hero"><div className="big-chapter-icon"><chapter.icon size={30} /></div><div><span>فصل {fa(chapter.id)} · صفحهٔ {fa(chapter.start)}</span><h2>{chapter.title}</h2><p>{chapter.description}</p></div></div>
           <div className="chapter-tags">{chapter.tags.map(t => <span key={t}>{t}</span>)}</div>
           <div className="section-list-head"><h3>سرفصل‌های این فصل</h3><span>{fa(chapter.sections.length)} بخش</span></div>
-          <div className="section-list">{chapter.sections.map((s, i) => <button key={s.page} onClick={() => openSection(s.title, s.page)}><span className={`section-check ${completed.includes(s.page) ? 'done' : ''}`}>{completed.includes(s.page) ? <CheckCircle2 size={16} /> : fa(i + 1)}</span><span><strong>{chapter.id}.{i + 1} · {s.title}</strong><small>صفحهٔ {fa(s.page)}{<em className="digital-tag">درس‌نامهٔ وب</em>}</small></span><BookOpen size={17} /></button>)}</div>
+          <div className="section-list">{chapter.sections.map((s, i) => <button key={s.key || s.page} onClick={() => openSection(s.title, s.page)}><span className={`section-check ${completed.includes(s.page) ? 'done' : ''}`}>{completed.includes(s.page) ? <CheckCircle2 size={16} /> : fa(i + 1)}</span><span><strong>{s.key || `${chapter.id}.${i + 1}`} · {s.title}</strong><small>صفحهٔ {fa(s.page)}{s.digitalOnly ? <em className="digital-tag">درس‌نامهٔ وب</em> : <><em className="digital-tag">درس‌نامهٔ وب</em> <BookOpen size={15} /></>}</small></span></button>)}</div>
           {chapter.id >= 3 && chapter.id <= 6 && <button className="experiment-link" onClick={onExperiment}><div><FlaskConical size={21} /><span><strong>وقت آزمایش کردن است!</strong><small>مفاهیم این فصل را روی گراف خودتان بررسی کنید.</small></span></div><ArrowLeft size={19} /></button>}
         </div>}
       </section>
