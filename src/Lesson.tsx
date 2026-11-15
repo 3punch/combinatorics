@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 
 export function M({ children, display = false }: { children: string; display?: boolean }) {
-  const html = katex.renderToString(children, { displayMode: display, throwOnError: false, output: 'html' })
+  const html = katex.renderToString(children, { displayMode: display, throwOnError: false, strict: 'ignore', output: 'html' })
   return <span className={`math ${display ? 'math-display' : ''}`} dir="ltr" dangerouslySetInnerHTML={{ __html: html }} />
 }
 

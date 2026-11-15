@@ -11,6 +11,7 @@ import './styles.css'
 import './library.css'
 import './lesson.css'
 import './digital-section.css'
+import './automata-lab.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

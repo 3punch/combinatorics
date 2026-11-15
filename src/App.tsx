@@ -11,6 +11,7 @@ import type { LucideIcon } from 'lucide-react'
 import { chromaticColoring, completeGraph, conjectures, graphAnalysis, initialGraph, triangleGraph } from './graph'
 import type { Graph } from './graph'
 import Library from './Library'
+import type { LibraryTrack } from './Library'
 import AutomataLab from './AutomataLab'
 import PumpingLemma from './PumpingLemma'
 
@@ -23,7 +24,25 @@ function Logo() {
   return <div className="brand"><div className="brand-mark"><Network size={26} strokeWidth={2.2} /></div><div><strong>تَرکیب</strong><span>آزمایشگاه ترکیبیات</span></div></div>
 }
 
-function Sidebar({ onModal, open, setOpen, view, onView }: { onModal: (m: Modal) => void; open: boolean; setOpen: (v: boolean) => void; view: View; onView: (v: View) => void }) {
+function Sidebar({
+  onModal,
+  open,
+  setOpen,
+  view,
+  libraryTrack,
+  onOpenLibrary,
+  onView,
+  onJumpConjecture,
+}: {
+  onModal: (m: Modal) => void
+  open: boolean
+  setOpen: (v: boolean) => void
+  view: View
+  libraryTrack: LibraryTrack
+  onOpenLibrary: (track: LibraryTrack) => void
+  onView: (v: View) => void
+  onJumpConjecture: () => void
+}) {
   const nav = (label: string, Icon: LucideIcon, action?: () => void, active = false, badge?: string) => (
     <button className={`nav-item ${active ? 'active' : ''}`} onClick={action}><Icon size={19} /><span>{label}</span>{badge && <em>{badge}</em>}</button>
   )
@@ -34,7 +53,8 @@ function Sidebar({ onModal, open, setOpen, view, onView }: { onModal: (m: Modal)
       <div className="nav-label">فضای کاری</div>
       <nav>
         {nav('آزمایشگاه گراف', Network, () => { onView('lab'); window.scrollTo({ top: 0, behavior: 'smooth' }); setOpen(false) }, view === 'lab')}
-        {nav('جزوهٔ دانشگاه', LibraryBig, () => { onView('library'); window.scrollTo({ top: 0, behavior: 'smooth' }); setOpen(false) }, view === 'library', 'PDF')}\n        {nav('آزمایشگاه اتوماتا', Atom, () => { onView('automata'); window.scrollTo({ top: 0, behavior: 'smooth' }); setOpen(false) }, view === 'automata')}
+        {nav('جزوهٔ ترکیبیات', LibraryBig, () => { onOpenLibrary('combinatorics'); window.scrollTo({ top: 0, behavior: 'smooth' }); setOpen(false) }, view === 'library' && libraryTrack === 'combinatorics', 'PDF')}
+        {nav('آزمایشگاه اتوماتا', Atom, () => { onView('automata'); window.scrollTo({ top: 0, behavior: 'smooth' }); setOpen(false) }, view === 'automata')}
         {nav('لم پمپاژ', FlaskConical, () => { onView('pumping'); window.scrollTo({ top: 0, behavior: 'smooth' }); setOpen(false) }, view === 'pumping')}
         {nav('مسیر یادگیری', GraduationCap, () => onModal('lessons'), false, '۳')}
         {nav('چالش‌های ترکیبیات', Trophy, () => onModal('ramsey'))}
@@ -42,8 +62,8 @@ function Sidebar({ onModal, open, setOpen, view, onView }: { onModal: (m: Modal)
       </nav>
       <div className="nav-label second">کشف و بررسی</div>
       <nav>
-        {nav('حدس‌ساز', BrainCircuit, () => { document.getElementById('conjecture')?.scrollIntoView({ behavior: 'smooth' }); setOpen(false) })}
-        {nav('اشیاء ترکیبیاتی', Atom, () => onModal('lessons'), false, 'به‌زودی')}
+        {nav('حدس‌ساز گراف', BrainCircuit, () => { onJumpConjecture(); setOpen(false) })}
+        {nav('درس‌نامه‌های اتوماتا', BookOpen, () => { onOpenLibrary('automata'); window.scrollTo({ top: 0, behavior: 'smooth' }); setOpen(false) }, view === 'library' && libraryTrack === 'automata', '۱۲ درس')}
       </nav>
       <div className="sidebar-spacer" />
       <div className="weekly-card">
@@ -58,11 +78,21 @@ function Sidebar({ onModal, open, setOpen, view, onView }: { onModal: (m: Modal)
   </>
 }
 
-function Topbar({ onMenu, onModal, onToast, view }: { onMenu: () => void; onModal: (m: Modal) => void; onToast: (s: string) => void; view: View }) {
+function Topbar({ onMenu, onModal, onToast, view, libraryTrack }: { onMenu: () => void; onModal: (m: Modal) => void; onToast: (s: string) => void; view: View; libraryTrack: LibraryTrack }) {
   const [searchOpen, setSearchOpen] = useState(false)
+  const crumbTitle =
+    view === 'lab'
+      ? 'آزمایشگاه گراف'
+      : view === 'automata'
+        ? 'آزمایشگاه اتوماتا'
+        : view === 'pumping'
+          ? 'آزمایشگاه لم پمپاژ'
+          : libraryTrack === 'automata'
+            ? 'درس‌نامه‌های اتوماتا'
+            : 'کتابخانهٔ ترکیبیات'
   return <header className="topbar">
     <button className="mobile-menu icon-btn" onClick={onMenu}><Menu size={21} /></button>
-    <div className="breadcrumb"><span>فضای کاری</span><ChevronLeft size={14} /><strong>{view === 'lab' ? 'آزمایشگاه گراف' : view === 'automata' ? 'آزمایشگاه اتوماتا' : view === 'pumping' ? 'لم پمپاژ' : 'کتابخانهٔ ترکیبیات'}</strong></div>
+    <div className="breadcrumb"><span>فضای کاری</span><ChevronLeft size={14} /><strong>{crumbTitle}</strong></div>
     <div className="top-actions">
       <button className="search-box" onClick={() => setSearchOpen(!searchOpen)}><Search size={17} /><span>جست‌وجو در ترکیب...</span><kbd><Command size={12} /> K</kbd></button>
       <button className="icon-btn help-top" onClick={() => onModal('help')}><HelpCircle size={19} /></button>
@@ -257,6 +287,7 @@ function App() {
   })
   const [tool, setTool] = useState<Tool>('select')
   const [view, setView] = useState<View>('lab')
+  const [libraryTrack, setLibraryTrack] = useState<LibraryTrack>('combinatorics')
   const [modal, setModal] = useState<Modal>(null)
   const [toast, setToast] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -270,21 +301,39 @@ function App() {
   const redo = () => { if (!future.length) return; setPast(p => [...p, graph]); setGraphState(future[0]); setFuture(f => f.slice(1)) }
   const a = graphAnalysis(graph)
   useEffect(() => {
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setModal(null); if ((e.ctrlKey || e.metaKey) && e.key === 'z') undo() }
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setModal(null)
+      if (view === 'lab' && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') undo()
+    }
     window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key)
   })
   const loadLesson = (type: 'tree' | 'triangle' | 'complete') => {
     pushHistory(graph)
     setGraph(type === 'triangle' ? triangleGraph : type === 'complete' ? completeGraph(6) : { vertices: initialGraph.vertices, edges: initialGraph.edges.filter(e => e.id !== 8 && e.id !== 6 && e.id !== 5) })
+    setView('lab')
     setModal(null); notify('مثال آموزشی روی بوم بارگذاری شد')
   }
+  const openLibrary = (track: LibraryTrack) => {
+    setLibraryTrack(track)
+    setView('library')
+  }
+  const jumpConjecture = () => {
+    setView('lab')
+    window.setTimeout(() => document.getElementById('conjecture')?.scrollIntoView({ behavior: 'smooth' }), 60)
+  }
   return <div className="app-shell">
-    <Sidebar onModal={setModal} open={sidebarOpen} setOpen={setSidebarOpen} view={view} onView={setView} />
-    <main className="main-shell"><Topbar onMenu={() => setSidebarOpen(true)} onModal={setModal} onToast={notify} view={view} />
+    <Sidebar onModal={setModal} open={sidebarOpen} setOpen={setSidebarOpen} view={view} libraryTrack={libraryTrack} onOpenLibrary={openLibrary} onView={setView} onJumpConjecture={jumpConjecture} />
+    <main className="main-shell"><Topbar onMenu={() => setSidebarOpen(true)} onModal={setModal} onToast={notify} view={view} libraryTrack={libraryTrack} />
       <div className="content">
-        {view === 'library' && <Library onExperiment={() => setView('lab')} />}
-        {view === 'automata' && <AutomataLab onBack={() => setView('lab')} />}
-        {view === 'pumping' && <PumpingLemma onBack={() => setView('lab')} />}
+        {view === 'library' && (
+          <Library
+            initialTrack={libraryTrack}
+            onTrackChange={setLibraryTrack}
+            onExperiment={target => setView(target || 'lab')}
+          />
+        )}
+        {view === 'automata' && <AutomataLab onBack={() => setView('lab')} onToast={notify} onOpenPumping={() => setView('pumping')} />}
+        {view === 'pumping' && <PumpingLemma onBack={() => setView('lab')} onToast={notify} onOpenAutomata={() => setView('automata')} />}
         {view === 'lab' && <>
         <div className="page-heading"><div><div className="eyebrow"><span /> فضای کشف و آزمایش</div><h1>آزمایشگاه گراف</h1><p>بساز، تغییر بده و الگوهای پنهان را کشف کن.</p></div><div className="page-actions"><button className="secondary-btn" onClick={() => { pushHistory(graph); setGraph({ vertices: [], edges: [] }); notify('یک بوم تازه ساخته شد') }}><Plus size={17} /> گراف جدید</button><button className="primary-btn" onClick={() => { localStorage.setItem('tarkib-graph', JSON.stringify(graph)); notify('گراف در مرورگر شما ذخیره شد') }}><Save size={17} /> ذخیره گراف</button></div></div>
         <div className="stats-grid"><StatCard icon={CircleDot} label="تعداد رأس‌ها" value={a.n} note="n" tone="green" /><StatCard icon={Link2} label="تعداد یال‌ها" value={a.m} note="m" tone="purple" /><StatCard icon={Network} label="مؤلفه‌های همبندی" value={a.components} note={a.connected ? 'گراف همبند است' : 'گراف ناهمبند است'} tone="orange" /><StatCard icon={BarChart3} label="عدد رنگی" value={a.chromatic} note="χ(G)" tone="blue" /></div>
